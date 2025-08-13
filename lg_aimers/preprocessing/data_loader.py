@@ -1,4 +1,5 @@
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 
 def load_data(path):
     df = pd.read_csv(path)
@@ -19,4 +20,15 @@ def load_data(path):
     df['dow'] = df['date'].dt.weekday # 월=0, ..., 일=6
     df['week'] = df['date'].dt.isocalendar().week.astype(int)
 
-    return df
+
+    # 원핫 인코딩
+    df = pd.get_dummies(df, columns=['store', 'menu'], prefix=['store', 'menu'])
+
+    # 라벨 인코딩(임베딩용)
+    le_store = LabelEncoder()
+    df['store_enc'] = le_store.fit_transform(df['store_menu'].str.split('_').str[0])
+
+    le_menu = LabelEncoder()
+    df['menu_enc'] = le_menu.fit_transform(df['store_menu'].str.split('_').str[1])
+
+    return df, le_store, le_menu
