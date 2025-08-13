@@ -7,6 +7,7 @@
 
 
 ## 폴더 구조
+```
 LG-AIMERS/
 │
 ├─ main.py                   # 실행 진입점: 데이터 로드 → 전처리 → 학습 파이프라인
@@ -32,8 +33,7 @@ LG-AIMERS/
 │   └─ metrics.py              # 평가 지표 계산 (MAE, RMSE 등)
 │
 └─ notebooks/                 # 실험용 Jupyter Notebook (EDA, 테스트)
-
----
+```
 
 ## 환경설정 명령어 모음 (WSL + Python 가상환경)
 ```bash
