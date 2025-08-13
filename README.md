@@ -1,12 +1,12 @@
-# LG-AIMERS 시계열 예측 프로젝트
+## LG-AIMERS 시계열 예측 프로젝트
 
-## 프로젝트 개요
+### 프로젝트 개요
 - 시계열 데이터를 **T+S 분해(STL)** 후, 잔차에 대해 Transformer 모델을 적용
 - 이벤트성 변동(`is_event`) 및 이상치(`is_outlier`) 플래그를 생성하여 모델에 피처로 활용
 
 
 
-## 폴더 구조
+### 폴더 구조
 ```
 LG-AIMERS/
 │
@@ -35,7 +35,7 @@ LG-AIMERS/
 └─ notebooks/                 # 실험용 Jupyter Notebook (EDA, 테스트)
 ```
 
-## 환경설정 명령어 모음 (WSL + Python 가상환경)
+### 환경설정 명령어 모음 (WSL + Python 가상환경)
 ```bash
 # 1. WSL 실행(종료는 exit)
 wsl
