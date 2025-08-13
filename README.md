@@ -8,17 +8,21 @@
 ```
 LG-AIMERS/
 │
-├─ main.py                   # 실행 진입점: 데이터 로드 → 전처리 → 학습 파이프라인
-├─ requirements.txt
-├─ README.md
+├─ main.py                    # 학습 진입점
+├─ inference.py               # 예측 진입점
 │
 ├─ config.py                  # 설정값 (경로, 하이퍼파라미터 등)
 │
 ├─ preprocess/
 │   ├─ __init__.py
-│   ├─ data_loader.py         # 데이터 로드, 형변환, 결측치 처리
-│   ├─ feature_engineering.py # rolling mean/std, 이벤트성 플래그, IQR 이상치 생성
-│   └─ ts_decompose.py        # STL 등 T+S 분해, 잔차 추출
+│   └─ data_loader.py         # 데이터 불러오기/기본 전처리
+│
+├─ feature_engineering/
+│   ├─ __init__.py
+│   ├─ clustering.py          # 임베딩 기반 클러스터링
+│   ├─ decompose.py           # STL 시계열 분해
+│   ├─ flag.py                # 이벤트 플래그, IQR 이상치
+│   └─ rolling_stats.py       # rolling mean/std
 │
 ├─ models/
 │   ├─ __init__.py
@@ -27,8 +31,8 @@ LG-AIMERS/
 │
 ├─ utils/
 │   ├─ __init__.py
-│   ├─ visualization.py        # 잔차 플롯, outlier 표시, 시즌성 시각화
-│   └─ metrics.py              # 평가 지표 계산 (MAE, RMSE 등)
+│   ├─ visualization.py       # 잔차 플롯, outlier 표시, 시즌성 시각화
+│   └─ metrics.py             # 평가 지표 계산 (MAE, RMSE 등)
 │
 └─ notebooks/                 # 실험용 Jupyter Notebook (EDA, 테스트)
 ```
@@ -57,6 +61,7 @@ python3 -m pip install --upgrade pip
 # 7. 필요한 패키지 설치
 python3 -m pip install ultralytics
 python3 -m pip install notebook
+...
 
 # 8. 패키지 버전 저장
 pip freeze > requirements.txt
