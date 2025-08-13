@@ -1,26 +1,24 @@
 import pandas as pd
-from preprocessing import load_data
+from preprocessing import load_data, fit_label_encoders, save_encoders, encode_labels
 from feature_engineering import stl_decompose
 
 DATA_PATH = "data/train/train.csv"
 
-df_train, le_store, le_menu = load_data(DATA_PATH)
+df_train = pd.read_csv(DATA_PATH)
+df_train = load_data(DATA_PATH)
 
-df = stl_decompose(df_train)
-df = add_eventy_flag(df, window=28)
-df = add_outlier_flag(df, window=28)
+le_store, le_menu = fit_label_encoders(df_train)
+save_encoders(le_store, le_menu, 'le_store.pkl', 'le_menu.pkl')
+df_train = encode_labels(df_train, le_store, le_menu)
 
-# 모델 학습 코드
-"""
-주의: 원핫 인코딩과 임베딩용 라벨 인코딩을 동시에 쓰면, 
-모델 종류에 따라 둘 중 하나만 쓰거나 분리해서 사용해야 함.
-- 딥러닝 → 임베딩 사용
-- 전통적 ML → 원핫 인코딩 사용
-"""
+df_train = stl_decompose(df_train)
+df_train = add_event(df_train, window=28)
+df_train = add_outlier_flag(df_train, window=28)
 
-# 학습이 끝나면 encoder 저장
-import pickle
-with open('le_store.pkl', 'wb') as f:
-    pickle.dump(le_store, f)
-with open('le_menu.pkl', 'wb') as f:
-    pickle.dump(le_menu, f)
+# 임베딩은 맨 마지막에 할까? 모델 넣을 때 달라지는 거니까
+
+# # 학습에 필요없는 거 drop
+# df_train = df_train.drop(columns=['date'])
+# df_train = df_train.drop(columns=['store_menu'])
+
+# 모델 학습 코드 일단은 patchTFT로만 해보자
