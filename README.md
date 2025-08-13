@@ -1,10 +1,10 @@
 # LG-AIMERS 시계열 예측 프로젝트
 
-## 📌 프로젝트 개요
+## 프로젝트 개요
 - 시계열 데이터를 **T+S 분해(STL)** 후, 잔차에 대해 Transformer 모델을 적용
-- 이벤트성 변동(`is_eventy_volatile`) 및 이상치(`is_outlier`) 플래그를 생성하여 모델에 피처로 활용
+- 이벤트성 변동(`is_event`) 및 이상치(`is_outlier`) 플래그를 생성하여 모델에 피처로 활용
 
----
+
 
 ## 폴더 구조
 LG-AIMERS/
