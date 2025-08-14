@@ -11,7 +11,7 @@ DATA_PATH = "data/train/train.csv"
 
 df_train = pd.read_csv(DATA_PATH)
 
-df_train = load_data(DATA_PATH)
+df_train = load_data(df_train)
 df_train = add_date_features(df_train)
 df_train = add_holiday_info(df_train)
 
