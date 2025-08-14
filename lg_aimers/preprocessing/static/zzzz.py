@@ -42,8 +42,7 @@ def add_kr_holiday_features(df: pd.DataFrame, date_col: str = "date"):
     cal["is_holiday"] = (cal["holiday_name"] != "None").astype(int)
 
     # 주말/휴일·연휴 블록
-    cal["weekday"] = pd.to_datetime(cal["date_only"]).dt.weekday  # Mon=0 ... Sun=6
-    cal["is_weekend"] = (cal["weekday"] >= 5).astype(int)
+    cal["is_weekend"] = (cal["dow"] >= 5).astype(int)
     cal["is_offday"] = ((cal["is_holiday"] == 1) | (cal["is_weekend"] == 1)).astype(int)
 
     # 연휴(주말+공휴일) 연속 블록 계산
