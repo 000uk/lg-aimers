@@ -17,6 +17,12 @@ def add_date_features(df):
     df['day_cos'] = np.cos(2 * np.pi * df['day_of_year'] / 365)
     return df
 
+"""
+한국 공휴일(holidays.KR) + 주말을 이용해 known-in-advance 이벤트 피처 생성.
+- offblock_len: 연휴(주말+공휴일 포함) 길이
+- offblock_pos: 연휴 내 0-based 위치 (첫날=0)
+- days_to_next_holiday / days_since_prev_holiday: 최근/다음 공휴일까지 일수
+"""
 def add_holiday_info(df):
     df = df.copy()
 
