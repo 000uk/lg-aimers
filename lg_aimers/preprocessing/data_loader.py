@@ -5,7 +5,7 @@ from preprocessing import (
 
 def load_data(df):
     df = df.copy()
-    
+
     # 컬럼명 영문 변환
     df = df.rename(columns={
     '영업일자': 'date',
@@ -24,5 +24,7 @@ def load_data(df):
     le_store, le_menu, le_holiday = fit_label_encoders(df)
     save_encoders(le_store, le_menu, le_holiday, 'le_store.pkl', 'le_menu.pkl', 'le_holiday.pkl')
     df = encode_labels(df, le_store, le_menu, le_holiday)
+
+    print(df.head())
 
     return df
