@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
 
-# store/menu 분리
-df['store'] = df['store_menu'].str.split('_').str[0]
-df['menu'] =  df['store_menu'].str.split('_').str[1]
+
 
 # store_menu, store, menu 개수 확인
 num_store_menu = df['store_menu_enc'].nunique()

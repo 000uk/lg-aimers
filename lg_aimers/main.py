@@ -1,23 +1,10 @@
 import pandas as pd
-from preprocessing import load_data, fit_label_encoders, save_encoders, encode_labels, stl_decompose
-
-from preprocessing import load_data, add_date_features, add_holiday_info
-from preprocessing import add_kr_holiday_features
-
-from preprocessing import stl_decompose, fit_label_encoders, save_encoders, encode_labels
-
+from preprocessing import load_data
 
 DATA_PATH = "data/train/train.csv"
 
 df_train = pd.read_csv(DATA_PATH)
-
 df_train = load_data(df_train)
-df_train = add_date_features(df_train)
-df_train = add_holiday_info(df_train)
-
-le_store, le_menu, le_holiday = fit_label_encoders(df_train)
-save_encoders(le_store, le_menu, le_holiday, 'le_store.pkl', 'le_menu.pkl', 'le_holiday.pkl')
-df_train = encode_labels(df_train, le_store, le_menu, le_holiday)
 
 df_train = stl_decompose(df_train)
 # df_train = add_outlier_flag(df_train, window=28)
