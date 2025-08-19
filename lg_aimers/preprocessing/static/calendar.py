@@ -20,6 +20,6 @@ def add_date_features(df):
 def add_holiday_info(df):
     years = df['year'].unique()
     kr_hols = holidays.KR(years=years)
-    df['is_holiday'] = df['date'].dt.date.isin(kr_hols)
+    # df['is_holiday'] = df['date'].dt.date.isin(kr_hols)
     df['holiday_name'] = df['date'].dt.date.map(lambda d: kr_hols.get(d, 'None'))
     return df
