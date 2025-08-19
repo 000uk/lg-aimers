@@ -8,7 +8,7 @@ def load_data(df):
     '매출수량': 'sales_qty'
     })
 
-    # store/menu 분리 및 전처리
+    # store/menu 분리
     df['store'] = df['store_menu'].str.split('_').str[0]
     df['menu'] =  df['store_menu'].str.split('_').str[1]
 
