@@ -9,9 +9,8 @@
 LG-AIMERS/
 │
 ├─ dataset/
-│   ├─ build_windows.py       # 잔차 계산 슬라이딩 윈도우
-│   ├─ custom_dataset.py      # 
-│   └─ split_time.py          # 학습 및 검증 데이터 분리
+│   ├─ custom_dataset.py      # 잔차 계산 슬라이딩 윈도우 ?
+│   └─ split_time.py          # 학습 및 검증 데이터 분리 ?
 │
 ├─ models/
 │   └─ transformer_model.py   # Transformer 기반 모델 정의
@@ -28,7 +27,7 @@ LG-AIMERS/
 │   ├─ notyet/
 │   │   └─ rolling_stats.py   # rolling mean/std
 │   ├─ stl_decompose.py       # STL 시계열 분해 ㅇ
-│   └─ trend_extrapolate.py   # 미래 트렌드 외삽
+│   └─ trend_extrapolate.py   # 미래 트렌드 외삽 ?
 │
 ├─ train.py                   # 학습 진입점
 ├─ inference.py               # 예측 진입점
@@ -74,3 +73,4 @@ code . (ctrl+shift+p 눌러서 Python: Select Interpreter 입력 후 venv 선택
 # 11. Jupyter Notebook 실행
 
 jupyter notebook
+
