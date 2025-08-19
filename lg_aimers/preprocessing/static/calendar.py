@@ -31,13 +31,13 @@ def add_holiday_info(df):
                           df["date"].dt.year.max() + 2)
     kr_hols = holidays.KR(years=list(years))
     
-    df['holiday_name'] = df['date'].dt.date.map(lambda d: kr_hols.get(d, 'None'))
+    df['holiday'] = df['date'].dt.date.map(lambda d: kr_hols.get(d, 'None'))
 
     # 날짜 단위 인덱스 테이블 만들기 (중복 방지)
     cal = pd.DataFrame({"date": pd.to_datetime(sorted(df["date"].unique()))})
 
     # 주말/휴일·연휴 블록
-    cal["is_holiday"] = (df["holiday_name"] != "None").astype(int)
+    cal["is_holiday"] = (df["holiday"] != "None").astype(int)
     cal["is_weekend"] = (df["dow"] >= 5).astype(int)
     cal["is_offday"] = ((cal["is_holiday"] == 1) | (cal["is_weekend"] == 1)).astype(int)
 

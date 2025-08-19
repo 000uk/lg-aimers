@@ -1,12 +1,12 @@
-from lg_aimers.feature_engineering.flag import add_eventy_flag, add_outlier_flag
+from lg_aimers.fitted.events import add_eventy_flag, add_outlier_flag
 from preprocessing import load_data, fit_label_encoders, load_encoders, encode_labels
 DATA_PATH = "data/test/TEST_00.csv"
 
 df_test = data_preprocess(df_test)
 
 # 인코딩
-le_store, le_menu = load_encoders('le_store.pkl', 'le_menu.pkl')
-df_test, meta = encode_with_encoders(df_test, le_store, le_menu)
+le_store, le_menu = load_encoders('le_store.pkl', 'le_menu.pkl', 'le_holiday.pkl')
+df_test, meta = encode_with_encoders(df_test, le_store, le_menu, le_holiday)
 
 # 모델 입력 X만 따로 생성 (drop)
 X_test = df_test.drop(columns=['date', 'store_menu'])  

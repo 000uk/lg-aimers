@@ -15,9 +15,9 @@ df_train = load_data(df_train)
 df_train = add_date_features(df_train)
 df_train = add_holiday_info(df_train)
 
-le_store, le_menu = fit_label_encoders(df_train)
-save_encoders(le_store, le_menu, 'le_store.pkl', 'le_menu.pkl')
-df_train = encode_labels(df_train, le_store, le_menu)
+le_store, le_menu, le_holiday = fit_label_encoders(df_train)
+save_encoders(le_store, le_menu, le_holiday, 'le_store.pkl', 'le_menu.pkl', 'le_holiday.pkl')
+df_train = encode_labels(df_train, le_store, le_menu, le_holiday)
 
 df_train = stl_decompose(df_train)
 # df_train = add_outlier_flag(df_train, window=28)
