@@ -1,6 +1,6 @@
 import numpy as np
 
-def extrapolate_trend_linear(last_trend: np.ndarray, horizon: int) -> np.ndarray:
+def extrapolate_trend(last_trend: np.ndarray, horizon: int) -> np.ndarray:
     """
     마지막 구간 trend를 1차 선형으로 완만하게 외삽.
     last_trend: (L,)  최근 L일 trend
@@ -13,7 +13,7 @@ def extrapolate_trend_linear(last_trend: np.ndarray, horizon: int) -> np.ndarray
     x_future = np.arange(L, L + horizon)
     return a * x_future + b
 
-def repeat_seasonal_weekly(last_seasonal: np.ndarray, horizon: int) -> np.ndarray:
+def repeat_seasonal(last_seasonal: np.ndarray, horizon: int) -> np.ndarray:
     """
     주기=7 가정. 마지막 7일 seasonal 패턴을 반복.
     last_season = last_seasonal[-7:]

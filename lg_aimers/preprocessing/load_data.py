@@ -17,4 +17,4 @@ def load_data(df):
         lambda x: (x - x.mean()) / x.std()
     ).fillna(0) # x.std()가 0이면 NaN이 나옴
     
-    return df
+    return df, df.groupby('store_menu')['sales_qty'].agg(['mean', 'std']).rename(columns={'mean':'mean','std':'std'}).reset_index()
