@@ -14,7 +14,7 @@ LG-AIMERS/
 ├─ dataset/
 │   ├─ __init__.py
 │   ├─ build_windows.py       # 잔차 계산 슬라이딩 윈도우
-│   ├─ data_loader.py         # 데이터 불러오기/기본 전처리
+│   ├─ data_loader.py         # 데이터 불러오기/기본 전처리 ㅇ
 │   └─ split_time.py          # 학습 및 검증 데이터 분리
 │
 ├─ models/
@@ -24,16 +24,16 @@ LG-AIMERS/
 ├─ preprocess/
 │   ├─ fitted/
 │   │   ├─ embedding.py       # 임베딩
-│   │   ├─ encoders.py        # store, menu, holiday(라벨), 요일(원핫)
+│   │   ├─ encoders.py        # store, menu, holiday(라벨) ㅇ, 요일(원핫) ㄴ
 │   │   └─ scalers.py         # store_menu별 sales_qty 졍규화
 │   ├─ static/
-│   │   ├─ calendar.py        # 달력 관련 전처리
+│   │   ├─ calendar.py        # 달력 관련 전처리 ㅇ
 │   │   └─ clustering.py      # 메뉴명 가게 클러스터링
 │   └─ __init__.py
 │
 ├─ stl/
 │   ├─ rolling_stats.py       # rolling mean/std
-│   ├─ stl_decompose.py       # STL 시계열 분해
+│   ├─ stl_decompose.py       # STL 시계열 분해 ㅇ
 │   └─ trend_extrapolate.py   # 미래 트렌드 외삽
 │
 └─ notebooks/                 # 실험용 Jupyter Notebook (EDA, 테스트)
@@ -77,3 +77,4 @@ code . (ctrl+shift+p 눌러서 Python: Select Interpreter 입력 후 venv 선택
 # 11. Jupyter Notebook 실행
 
 jupyter notebook
+
