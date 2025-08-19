@@ -74,7 +74,3 @@ code . (ctrl+shift+p 눌러서 Python: Select Interpreter 입력 후 venv 선택
 # 11. Jupyter Notebook 실행
 
 jupyter notebook
-
-
-
-
