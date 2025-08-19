@@ -1,3 +1,6 @@
+import numpy as np
+from typing import Dict, Tuple, List
+
 # -----------------------------
 # 4) 학습/검증 분리 (간단 rolling or time split)
 # -----------------------------
