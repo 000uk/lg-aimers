@@ -1,4 +1,4 @@
-## LG-AIMERS 시계열 예측 프로젝트
+## LG-AIMERS 시계열 예측
 
 ### 프로젝트 개요
 - 시계열 데이터를 **T+S 분해(STL)** 후, 잔차에 대해 Transformer 모델을 적용
@@ -73,4 +73,5 @@ code . (ctrl+shift+p 눌러서 Python: Select Interpreter 입력 후 venv 선택
 # 11. Jupyter Notebook 실행
 
 jupyter notebook
+
 
