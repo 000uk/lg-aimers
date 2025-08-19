@@ -28,34 +28,3 @@ def encode_labels(df, le_store, le_menu, le_holiday):
     df['menu_enc'] = le_menu.transform(df['menu'])
     df['holiday_enc'] = le_holiday.transform(df['holiday'])
     return df
-
-# class MultiLabelEncoder:
-#     def __init__(self):
-#         self.encoders = {}
-#         self.unk_index = {}
-
-#     def fit(self, df, columns):
-#         for col in columns:
-#             le = LabelEncoder()
-#             le.fit(df[col])
-#             self.encoders[col] = le
-#             self.unk_index[col] = len(le.classes_)  # UNK index
-
-#     def transform(self, df):
-#         df = df.copy()
-#         for col, le in self.encoders.items():
-#             df[col + "_enc"] = df[col].apply(
-#                 lambda x: le.transform([x])[0] if x in le.classes_ else self.unk_index[col]
-#             )
-#         return df
-
-#     def save(self, path_prefix):
-#         for col, le in self.encoders.items():
-#             with open(f"{path_prefix}_{col}.pkl", "wb") as f:
-#                 pickle.dump(le, f)
-
-#     def load(self, path_prefix, columns):
-#         for col in columns:
-#             with open(f"{path_prefix}_{col}.pkl", "rb") as f:
-#                 self.encoders[col] = pickle.load(f)
-#                 self.unk_index[col] = len(self.encoders[col].classes_)

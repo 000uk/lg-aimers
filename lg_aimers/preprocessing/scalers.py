@@ -16,3 +16,14 @@ B 매장: 하루 평균 5개 판매
 
 그래서 **그룹별(매장·메뉴별)**로 평균/표준편차를 따로 계산해서 스케일링합니다.
 """
+import pandas as pd
+
+def sales_scaler(df):
+  df = df.copy()
+
+  # transform: 원본 DataFrame 크기와 맞춰 각 행에 정규화 값 할당
+  df['sales_norm'] = df.groupby('store_menu')['sales_qty'].transform(
+    lambda x: (x - x.mean()) / x.std()
+  ).fillna(0) # x.std()가 0이면 NaN이 나옴
+  
+  return df
