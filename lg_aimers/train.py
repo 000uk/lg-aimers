@@ -40,8 +40,8 @@ model.fit(X_train, y_train)
 # ?) 최종 예측
 # -----------------------------
 future_residual = model.predict(future_input)
-future_trend = extrapolate_trend(df['trend'], horizon) # - Trend: 선형/다항 회귀로 앞으로 연장
-future_seasonal = repeat_seasonal(df['seasonal'], horizon) # - Seasonal: 주기 반복
+future_trend = extrapolate_trend(df_train['trend'], horizon=7) # - Trend: 선형/다항 회귀로 앞으로 연장
+future_seasonal = repeat_seasonal(df_train['seasonal'], horizon=7) # - Seasonal: 주기 반복
 future_pred = future_trend + future_seasonal + future_residual
 
 # 원래 스키마로 되돌리기
