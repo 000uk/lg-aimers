@@ -1,5 +1,5 @@
 import pandas as pd
-from preprocessing import load_data, MultiLabelEncoder, add_date_features, add_holiday_info, 
+from preprocessing import load_data, MultiLabelEncoder, add_date_features, add_holiday_info
 from dataset.custom_dataset import TransformerTimeSeriesDataset
 from torch.utils.data import DataLoader
 
