@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd
-from ..stl import extrapolate_trend, repeat_seasonal
+from stl import extrapolate_trend, repeat_seasonal
 
 class Custom_Dataset(Dataset):
     def __init__(self, 
