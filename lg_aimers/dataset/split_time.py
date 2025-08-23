@@ -1,18 +1,14 @@
 import numpy as np
 import pandas as pd
-from typing import Dict, Tuple, List
+from typing import Dict
 
-# -----------------------------
-# 4) 학습/검증 분리 (간단 rolling or time split)
-# -----------------------------
 def time_based_split(
+    # custom_dataset에서 뽑아낸 학습용 배열 모음
     windows: Dict[str, np.ndarray],
     meta: pd.DataFrame,
     val_ratio: float = 0.1
 ):
-    """
-    meta['pred_start_date'] 기준으로 시간순 정렬 후 뒤쪽 val_ratio를 검증으로 사용.
-    """
+    # meta['pred_start_date'] 기준으로 시간순 정렬 후 뒤쪽 val_ratio를 검증으로 사용
     order = np.argsort(meta['pred_start_date'].values)
     for k in ["X_enc", "X_dec_future", "y_resid", "trend_future", "seasonal_future"]:
         windows[k] = windows[k][order]

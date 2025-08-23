@@ -8,7 +8,9 @@ def load_data(df):
     '매출수량': 'sales_qty'
     })
 
-    # store/menu 분리
+    df.loc[df['sales_qty'] < 0, 'sales_qty'] = 0 # 일단 음수값은 0으로 처리하자
+    # 나중에 저 음수값 다른 방식으로 처리하는것도 생각해보자
+
     df['store'] = df['store_menu'].str.split('_').str[0]
     df['menu'] =  df['store_menu'].str.split('_').str[1]
 

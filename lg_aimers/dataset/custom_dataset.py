@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from stl import extrapolate_trend, repeat_seasonal
 
-class Custom_Dataset(Dataset):
+class WindowGenerator(Dataset):
     def __init__(self, 
                  df: pd.DataFrame,
                  input_len: int = 28,
@@ -42,14 +42,6 @@ class Custom_Dataset(Dataset):
             self.known_future_cols = known_future_cols
 
         # 슬라이딩 윈도우 생성.. 여기서 실제로 데이터 자르고 붙인대
-        """
-        self.X_enc: 인코더 입력값 (과거 시계열 데이터일 가능성 있음)
-        self.X_dec_future: 디코더가 사용할 미래 입력값
-        self.y_resid: 잔차(residuals), 즉 예측값과 실제값의 차이
-        self.trend_future: 미래 트렌드 성분
-        self.seasonal_future: 미래 계절성 성분
-        self.meta: 메타데이터 (예: 타임스탬프, 범주형 정보 등)
-        """
         self.X_enc, self.X_dec_future, self.y_resid, \
             self.trend_future, self.seasonal_future, self.meta = self.build_windows()
 
@@ -114,20 +106,56 @@ class Custom_Dataset(Dataset):
     def __len__(self):
         return len(self.X_enc)
 
+    # 이제 여기서 tensor로 변환함!
+    # Dataset[idx]로 호출될 때, DataLoader에서 자동 호출될 때 등등 getitem 실행됨
     def __getitem__(self, idx):
         y_resid = torch.tensor(self.y_resid[idx])          # 모델이 학습할 타깃
         trend_future = torch.tensor(self.trend_future[idx]) 
         seasonal_future = torch.tensor(self.seasonal_future[idx])
 
-        y_full = y_resid + trend_future + seasonal_future
+        y_full = y_resid + trend_future + seasonal_future # 최종 결과
+
         return {
             "X_enc": torch.tensor(self.X_enc[idx]),
             "X_dec_future": torch.tensor(self.X_dec_future[idx]),
-            #"y_resid": torch.tensor(self.y_resid[idx]),
-            #"trend_future": torch.tensor(self.trend_future[idx]),
-            #"seasonal_future": torch.tensor(self.seasonal_future[idx])
             "y_resid": y_resid,
             "trend_future": trend_future,
             "seasonal_future": seasonal_future,
             "y_full": y_full
+        }
+
+class TimeSeriesDataset(Dataset):
+    """
+    역할:
+      - time_based_split()에서 나온 split dict (train/val 데이터) 중
+        하나를 받아서 PyTorch Dataset 포맷으로 감쌈
+      - DataLoader에 직접 들어가도록 지원
+    """
+    def __init__(self, split: dict, mode: str = "train"):
+        assert mode in ["train", "val"], "mode must be 'train' or 'val'"
+        self.mode = mode
+
+        self.X_enc = torch.tensor(split[f"{mode}_X_enc"], dtype=torch.float32)
+        self.X_dec_future = torch.tensor(split[f"{mode}_X_dec_future"], dtype=torch.float32)
+        self.y_resid = torch.tensor(split[f"{mode}_y_resid"], dtype=torch.float32)
+        self.trend_future = torch.tensor(split[f"{mode}_trend_future"], dtype=torch.float32)
+        self.seasonal_future = torch.tensor(split[f"{mode}_seasonal_future"], dtype=torch.float32)
+
+        # full target (resid + trend + seasonal)
+        self.y_full = self.y_resid + self.trend_future + self.seasonal_future
+
+        self.meta = split[f"{mode}_meta"].reset_index(drop=True)
+
+    def __len__(self):
+        return len(self.X_enc)
+
+    def __getitem__(self, idx):
+        return {
+            "X_enc": self.X_enc[idx],                  # Encoder 입력 (28일)
+            "X_dec_future": self.X_dec_future[idx],    # Decoder 입력 (7일)
+            "y_resid": self.y_resid[idx],              # 예측 residual
+            "trend_future": self.trend_future[idx],    
+            "seasonal_future": self.seasonal_future[idx],
+            "y_full": self.y_full[idx],                # 최종 타깃
+            "meta": self.meta.iloc[idx].to_dict()      # 매장/메뉴/날짜 정보
         }

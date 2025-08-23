@@ -4,11 +4,12 @@ from preprocessing import (
   fit_label_encoders, save_encoders, encode_labels,
 )
 from stl import stl_decompose, extrapolate_trend, repeat_seasonal
+from dataset import Custom_Dataset, time_based_split
 
 DATA_PATH = "data/train/train.csv"
 
 # -----------------------------
-# 1) 데이터셋 전처리
+# 1) 데이터 전처리
 # -----------------------------
 df_train, stats = load_data(pd.read_csv(DATA_PATH))
 
@@ -20,16 +21,33 @@ save_encoders(le_store, le_menu, le_holiday, 'le_store.pkl', 'le_menu.pkl', 'le_
 df_train = encode_labels(df_train, le_store, le_menu, le_holiday)
 
 df_train = df_train.drop(columns=['store', 'menu', 'day', 'month', 'dow', 'week','day_of_year', 'holiday']).fillna(0)
-
-# -----------------------------
-# 2) stl 분리 및 데이터셋 생성(윈도우 등)
-# -----------------------------
 df_train = stl_decompose(df_train)
 
+# -----------------------------
+# 2) 데이터셋 생성(윈도우 등) 및 분리
+#    - 역할: 데이터를 인덱스로 접근 가능하게 래핑(wrapping)
+#    - 슬라이딩 윈도우, 전처리, feature 선택 등 모든 샘플 단위 전처리를 여기서 수행
+# -----------------------------
+dataset = Custom_Dataset(
+    df=df_train,
+    input_len=28,
+    pred_len=7,
+    id_cols=("store_enc", "menu_enc"),
+    target_col="residual"
+)
 
-x, y = Custom_Dataset(df['residual'])  # 슬라이딩 윈도우 시퀀스 만들기
-x_train, x_val, y_train, y_val = train_test_split(X, y, test_size=0.2)
-# 데이터셋 분리 time_based_split (학습 및 검증)
+# 전체 날짜 기준으로 split임
+# windows = {
+#     "X_enc": dataset.X_enc,
+#     "X_dec_future": dataset.X_dec_future,
+#     "y_resid": dataset.y_resid,
+#     "trend_future": dataset.trend_future,
+#     "seasonal_future": dataset.seasonal_future,
+#     "info": None  # info가 필요 없으면 None
+# }
+# meta = dataset.meta
+# split = time_based_split(windows, meta, val_ratio=0.1)
+
 
 # 임베딩은 맨 마지막에 할까? 모델 넣을 때 달라지는 거니까
 # 모델 학습 코드 일단은 patchTFT로만 해보자
