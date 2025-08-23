@@ -1,1 +1,1 @@
-from models import SimpleTransformer
+from .models import SimpleTransformer
