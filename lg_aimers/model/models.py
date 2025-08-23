@@ -11,7 +11,7 @@ import torch.nn as nn
 class SimpleTransformer(nn.Module):
     def __init__(self, X_enc_features, X_dec_features, 
              num_stores, num_menus, num_store_menus, emb_dim=16,
-             d_model=64, nhead=4, num_layers=2, pred_len=7, dropout=0.1):
+             d_model=64, nhead=4, num_layers=2, pred_len=7, dropout=0.3):
         super().__init__()
         self.encoder_input = nn.Linear(X_enc_features + 3*emb_dim, d_model)
         self.decoder_input = nn.Linear(X_dec_features + 1 + 3*emb_dim, d_model) # known future + previous y_full + 임베딩
