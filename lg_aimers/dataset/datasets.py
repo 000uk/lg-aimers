@@ -1,0 +1,147 @@
+import torch
+from torch.utils.data import Dataset
+import numpy as np
+import pandas as pd
+from stl import extrapolate_trend, repeat_seasonal
+
+class WindowGenerator(Dataset):
+    def __init__(self, 
+                 df: pd.DataFrame,
+                 input_len: int = 28,
+                 pred_len: int = 7,
+                 lag: int = 7,                 # 과거 k일
+                 id_cols: tuple = ("store_enc", "menu_enc"),
+                 target_col: str = "residual",
+                 used_feature_cols: list = None, 
+                 known_future_cols: list = None):
+        self.df = df.copy()
+        self.input_len = input_len
+        self.pred_len = pred_len
+        self.lag = lag
+        self.id_cols = id_cols
+        self.target_col = target_col
+
+        # 디폴트 feature 세팅
+        if used_feature_cols is None:
+            self.used_feature_cols = [
+                "day_sin","day_cos","month_sin","month_cos","dow_sin","dow_cos",
+                "holiday_enc","offblock_len","offblock_pos",
+                "days_to_next_holiday","days_since_prev_holiday",
+                "is_holiday","is_weekend","is_offday",
+                "trend","seasonal"
+            ]
+        else:
+            self.used_feature_cols = used_feature_cols
+
+        if known_future_cols is None:
+            self.known_future_cols = [
+                "day_sin","day_cos","month_sin","month_cos","dow_sin","dow_cos",
+                "holiday_enc","offblock_len","offblock_pos",
+                "days_to_next_holiday","days_since_prev_holiday",
+                "is_holiday","is_weekend","is_offday"
+            ]
+        else:
+            self.known_future_cols = known_future_cols
+
+        # 슬라이딩 윈도우 생성
+        self.X_enc, self.X_dec_future, self.y_resid, \
+            self.trend_future, self.seasonal_future, self.meta = self.build_windows()
+
+    def build_windows(self):
+        X_enc_list, X_dec_list, y_list, T_list, S_list = [], [], [], [], []
+        meta_rows = []
+
+        for (sid, mid), g in self.df.groupby(list(self.id_cols), sort=False):
+            g = g.sort_values("date").reset_index(drop=True)
+            n = len(g)
+            if n < self.input_len + self.pred_len:
+                continue
+
+            used_feats = g[self.used_feature_cols].values
+            known_feats = g[self.known_future_cols].values
+            resid = g[self.target_col].values
+            trend = g["trend"].values
+            seas = g["seasonal"].values
+            sales_norm = g["sales_norm"].values  # <- lag feature용
+
+            dates = g["date"].values
+
+            for t in range(self.input_len, n - self.pred_len + 1):
+                enc_start = t - self.input_len
+                enc_end = t
+                dec_start = t
+                dec_end = t + self.pred_len
+
+                X_enc_window = used_feats[enc_start:enc_end, :].astype(np.float32)
+
+                # lag features 생성
+                lag_feats = np.zeros((self.input_len, self.lag), dtype=np.float32)
+                for i in range(self.input_len):
+                    start_idx = max(0, enc_start + i - self.lag)
+                    end_idx = enc_start + i
+                    lag_window = sales_norm[start_idx:end_idx]
+                    lag_feats[i, -len(lag_window):] = lag_window  # 부족한 경우 앞쪽 0 패딩
+
+                # X_enc에 lag concat
+                X_enc_window = np.concatenate([X_enc_window, lag_feats], axis=-1)
+
+                X_enc_list.append(X_enc_window)
+                X_dec_list.append(known_feats[dec_start:dec_end, :].astype(np.float32))
+                y_list.append(resid[dec_start:dec_end].astype(np.float32))
+
+                # trend, seasonal 외삽
+                T_future = extrapolate_trend(trend[enc_start:enc_end], self.pred_len).astype(np.float32)
+                S_future = repeat_seasonal(seas[enc_start:enc_end], self.pred_len).astype(np.float32)
+
+                T_list.append(T_future)
+                S_list.append(S_future)
+
+                meta_rows.append({
+                    "store_enc": sid,
+                    "menu_enc": mid,
+                    "start_date": pd.to_datetime(dates[enc_start]).date(),
+                    "pred_start_date": pd.to_datetime(dates[dec_start]).date()
+                })
+
+        X_enc = np.stack(X_enc_list)
+        X_dec_future = np.stack(X_dec_list)
+        y_resid = np.stack(y_list)
+        trend_future = np.stack(T_list)
+        seasonal_future = np.stack(S_list)
+        meta = pd.DataFrame(meta_rows)
+
+        return X_enc, X_dec_future, y_resid, trend_future, seasonal_future, meta
+
+    def __len__(self):
+        return len(self.X_enc)
+
+    def __getitem__(self, idx):
+        y_resid = torch.tensor(self.y_resid[idx])
+        trend_future = torch.tensor(self.trend_future[idx])
+        seasonal_future = torch.tensor(self.seasonal_future[idx])
+        y_full = y_resid + trend_future + seasonal_future
+
+        return {
+            "X_enc": torch.tensor(self.X_enc[idx]),
+            "X_dec_future": torch.tensor(self.X_dec_future[idx]),
+            "y_resid": y_resid,
+            "trend_future": trend_future,
+            "seasonal_future": seasonal_future,
+            "y_full": y_full
+        }
+    
+class TSFullDataset(Dataset):
+    def __init__(self, X_enc, X_dec_future, y_full):
+        self.X_enc = X_enc.astype(np.float32)
+        self.X_dec_future = X_dec_future.astype(np.float32)
+        self.y_full = y_full.astype(np.float32)
+
+    def __len__(self):
+        return len(self.X_enc)
+
+    def __getitem__(self, idx):
+        return {
+            "X_enc": torch.tensor(self.X_enc[idx]),
+            "X_dec_future": torch.tensor(self.X_dec_future[idx]),
+            "y_full": torch.tensor(self.y_full[idx])
+        }

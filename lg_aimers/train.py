@@ -1,10 +1,14 @@
 import pandas as pd
+from torch.utils.data import DataLoader
+import torch
+import torch.nn as nn
 from preprocessing import (
   load_data, add_date_features, add_holiday_info,
   fit_label_encoders, save_encoders, encode_labels,
 )
 from stl import stl_decompose, extrapolate_trend, repeat_seasonal
-from dataset import Custom_Dataset, time_based_split
+from dataset import WindowGenerator, TSFullDataset, time_based_split
+from models import SimpleTransformer
 
 DATA_PATH = "data/train/train.csv"
 
@@ -28,7 +32,7 @@ df_train = stl_decompose(df_train)
 #    - 역할: 데이터를 인덱스로 접근 가능하게 래핑(wrapping)
 #    - 슬라이딩 윈도우, 전처리, feature 선택 등 모든 샘플 단위 전처리를 여기서 수행
 # -----------------------------
-dataset = Custom_Dataset(
+dataset = WindowGenerator(
     df=df_train,
     input_len=28,
     pred_len=7,
@@ -36,23 +40,100 @@ dataset = Custom_Dataset(
     target_col="residual"
 )
 
+windows = {
+    "X_enc": dataset.X_enc,
+    "X_dec_future": dataset.X_dec_future,
+    "y_resid": dataset.y_resid,
+    "trend_future": dataset.trend_future,
+    "seasonal_future": dataset.seasonal_future,
+    "info": None  # info가 필요 없으면 None
+}
+meta = dataset.meta
+
 # 전체 날짜 기준으로 split임
-# windows = {
-#     "X_enc": dataset.X_enc,
-#     "X_dec_future": dataset.X_dec_future,
-#     "y_resid": dataset.y_resid,
-#     "trend_future": dataset.trend_future,
-#     "seasonal_future": dataset.seasonal_future,
-#     "info": None  # info가 필요 없으면 None
-# }
-# meta = dataset.meta
-# split = time_based_split(windows, meta, val_ratio=0.1)
+split = time_based_split(windows, meta, val_ratio=0.1)
 
+# -------------------------------
+# Dataset + DataLoader
+# -------------------------------
+train_dataset = TSFullDataset(split["train_X_enc"], split["train_X_dec_future"], split["train_y_full"])
+val_dataset   = TSFullDataset(split["val_X_enc"], split["val_X_dec_future"], split["val_y_full"])
 
-# 임베딩은 맨 마지막에 할까? 모델 넣을 때 달라지는 거니까
-# 모델 학습 코드 일단은 patchTFT로만 해보자
-model = Transformer(...)  
-model.fit(X_train, y_train)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False)
+
+# -------------------------------
+# 모델 생성
+# -------------------------------
+device = "cuda" if torch.cuda.is_available() else "cpu"
+X_enc_features = split["train_X_enc"].shape[-1]
+X_dec_features = split["train_X_dec_future"].shape[-1]
+
+model = SimpleTransformer(X_enc_features, X_dec_features, d_model=64, nhead=4, num_layers=2, dropout=0.1).to(device)
+
+# -------------------------------
+# 옵티마이저 + 스케줄러
+# -------------------------------
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)  # L2 정규화
+criterion = nn.MSELoss()
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
+
+# -------------------------------
+# EarlyStopping
+# -------------------------------
+best_val_loss = float('inf')
+patience = 5
+trigger_times = 0
+
+# -------------------------------
+# 학습 루프
+# -------------------------------
+num_epochs = 50
+
+for epoch in range(1, num_epochs+1):
+    model.train()
+    total_loss = 0
+    for batch in train_loader:
+        X_enc = batch["X_enc"].to(device)
+        X_dec = batch["X_dec_future"].to(device)
+        y_full = batch["y_full"].to(device)
+
+        optimizer.zero_grad()
+        output = model(X_enc, X_dec, y_prev=y_full)
+        loss = criterion(output, y_full)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+
+    avg_loss = total_loss / len(train_loader)
+
+    # Validation
+    model.eval()
+    val_loss = 0
+    with torch.no_grad():
+        for batch in val_loader:
+            X_enc = batch["X_enc"].to(device)
+            X_dec = batch["X_dec_future"].to(device)
+            y_full = batch["y_full"].to(device)
+            output = model(X_enc, X_dec, y_prev=y_full)
+            val_loss += criterion(output, y_full).item()
+    val_loss /= len(val_loader)
+
+    # Scheduler step
+    scheduler.step(val_loss)
+
+    print(f"Epoch {epoch} Train Loss: {avg_loss:.4f} Val Loss: {val_loss:.4f}")
+
+    # EarlyStopping 체크
+    if val_loss < best_val_loss:
+        best_val_loss = val_loss
+        trigger_times = 0
+        torch.save(model.state_dict(), "best_model.pt")
+    else:
+        trigger_times += 1
+        if trigger_times >= patience:
+            print("EarlyStopping: 더 이상 개선 없음, 학습 종료")
+            break
 
 # -----------------------------
 # ?) 최종 예측
