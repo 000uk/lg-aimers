@@ -157,5 +157,5 @@ class TimeSeriesDataset(Dataset):
             "trend_future": self.trend_future[idx],    
             "seasonal_future": self.seasonal_future[idx],
             "y_full": self.y_full[idx],                # 최종 타깃
-            "meta": self.meta.iloc[idx].to_dict()      # 매장/메뉴/날짜 정보
+            # "meta": self.meta.iloc[idx].to_dict()      # 매장/메뉴/날짜 정보
         }
