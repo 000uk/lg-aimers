@@ -108,7 +108,7 @@ class WindowGenerator(Dataset):
                     "store_enc": sid,
                     "menu_enc": mid,
                     "start_date": pd.to_datetime(dates[enc_start]).date(),
-                    "pred_start_date": pd.to_datetime(dates[dec_start]).date()
+                    "pred_start_date": pd.to_datetime(dates[dec_start]).date(),
                     "store_menu_enc": store_menu_enc,
                 })
 
