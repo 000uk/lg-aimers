@@ -40,13 +40,16 @@ dataset = WindowGenerator(
     store_menu_col="store_menu_enc",
     target_col="residual"
 )
-
+meta = dataset.meta
 windows = {
     "X_enc": dataset.X_enc,
     "X_dec_future": dataset.X_dec_future,
     "y_resid": dataset.y_resid,
     "trend_future": dataset.trend_future,
     "seasonal_future": dataset.seasonal_future,
+    "store_id": meta["store_enc"].values,
+    "menu_id": meta["menu_enc"].values,
+    "store_menu_id": meta["store_menu_enc"].values,
     "info": None  # info가 필요 없으면 None
 }
 meta = dataset.meta
@@ -86,7 +89,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 num_stores = int(df_train["store_enc"].max()) + 1
 num_menus = int(df_train["menu_enc"].max()) + 1
 num_store_menus = int(df_train["store_menu_enc"].max()) + 1
-emb_dim = 16
+emb_dim = 4 # 임베딩 차원이 너무 놓으면 과적합 될 수도 있음
 
 X_enc_features = split["train_X_enc"].shape[-1]
 X_dec_features = split["train_X_dec_future"].shape[-1]
@@ -102,7 +105,8 @@ model = SimpleTransformer(
 # 옵티마이저 + 스케줄러
 # -------------------------------
 # Weight Decay → Adam 옵티마이저에서 L2 정규화 적용
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)  # L2 정규화
+# optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)  # L2 정규화
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-4)
 criterion = nn.MSELoss()
 # ReduceLROnPlateau → Val Loss 감소 없으면 학습률 반으로 줄임
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
