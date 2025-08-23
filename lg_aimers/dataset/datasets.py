@@ -12,8 +12,8 @@ class WindowGenerator(Dataset):
                  lag: int = 7,                 # 과거 k일
                  id_cols: tuple = ("store_enc", "menu_enc"),
                  target_col: str = "residual",
-                 used_feature_cols: list = None, 
-                 known_future_cols: list = None):
+                 used_feature_cols: list = None,  # 과거 구간 입력(Encoder)용
+                 known_future_cols: list = None): # 미래 구간 입력(Decoder)용
         self.df = df.copy()
         self.input_len = input_len
         self.pred_len = pred_len
