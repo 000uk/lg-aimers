@@ -11,7 +11,7 @@ def time_based_split(
     # meta['pred_start_date'] 기준으로 시간순 정렬 후 뒤쪽 val_ratio를 검증으로 사용
     order = np.argsort(meta['pred_start_date'].values)
     for k in ["X_enc", "X_dec_future", "y_resid", "trend_future", "seasonal_future",
-              "store_enc", "menu_enc", "store_menu_enc"]:   # ← ID 추가
+              "store_id", "menu_id", "store_menu_id"]:   # ← ID 추가
         windows[k] = windows[k][order]
     meta = meta.iloc[order].reset_index(drop=True)
 

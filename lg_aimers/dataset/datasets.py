@@ -20,7 +20,7 @@ class WindowGenerator(Dataset):
         self.pred_len = pred_len
         self.lag = lag
         self.id_cols = id_cols
-        self.store_menu_col = store_menu_col,
+        self.store_menu_col = store_menu_col
         self.target_col = target_col
 
         # 디폴트 feature 세팅
@@ -65,7 +65,7 @@ class WindowGenerator(Dataset):
             trend = g["trend"].values
             seas = g["seasonal"].values
             sales_norm = g["sales_norm"].values  # <- lag feature용
-
+            store_menu_enc = g[self.store_menu_col].values[0]
             dates = g["date"].values
 
             for t in range(self.input_len, n - self.pred_len + 1):
@@ -109,6 +109,7 @@ class WindowGenerator(Dataset):
                     "menu_enc": mid,
                     "start_date": pd.to_datetime(dates[enc_start]).date(),
                     "pred_start_date": pd.to_datetime(dates[dec_start]).date()
+                    "store_menu_enc": store_menu_enc,
                 })
 
         X_enc = np.stack(X_enc_list)
