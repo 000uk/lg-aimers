@@ -11,6 +11,7 @@ class WindowGenerator(Dataset):
                  pred_len: int = 7,
                  lag: int = 7,                 # 과거 k일
                  id_cols: tuple = ("store_enc", "menu_enc"),
+                 store_menu_col: str = "store_menu_enc",
                  target_col: str = "residual",
                  used_feature_cols: list = None,  # 과거 구간 입력(Encoder)용
                  known_future_cols: list = None): # 미래 구간 입력(Decoder)용
@@ -19,6 +20,7 @@ class WindowGenerator(Dataset):
         self.pred_len = pred_len
         self.lag = lag
         self.id_cols = id_cols
+        self.store_menu_col = store_menu_col,
         self.target_col = target_col
 
         # 디폴트 feature 세팅
@@ -127,13 +129,21 @@ class WindowGenerator(Dataset):
         seasonal_future = torch.tensor(self.seasonal_future[idx])
         y_full = y_resid + trend_future + seasonal_future
 
+        # ID 임베딩용
+        store_id = torch.tensor(self.meta["store_enc"].iloc[idx], dtype=torch.long)
+        menu_id = torch.tensor(self.meta["menu_enc"].iloc[idx], dtype=torch.long)
+        store_menu_id = torch.tensor(self.meta["store_menu_enc"].iloc[idx], dtype=torch.long)
+
         return {
             "X_enc": torch.tensor(self.X_enc[idx]),
             "X_dec_future": torch.tensor(self.X_dec_future[idx]),
             "y_resid": y_resid,
             "trend_future": trend_future,
             "seasonal_future": seasonal_future,
-            "y_full": y_full
+            "y_full": y_full,
+            "store_id": store_id,
+            "menu_id": menu_id,
+            "store_menu_id": store_menu_id
         }
 
 """
@@ -141,19 +151,27 @@ TSFullDataset
 과거 입력(X_enc)와 미래 입력(X_dec_future), 그리고 목표값(y_full)을 포함한 데이터셋을 PyTorch Dataset 형태로 준비.
 y_full = residual + trend + seasonal → 모델이 시계열 전체를 직접 예측하도록 함.
 Teacher Forcing을 위해 학습 시 디코더 입력에 이전 시점의 실제 y_full 값을 넣을 수 있게 설계.
+모델에서 store_emb, menu_emb, store_menu_emb를 사용하기 위한 ID 값도 넣어줌
 """
 class TSFullDataset(Dataset):
-    def __init__(self, X_enc, X_dec_future, y_full):
+    def __init__(self, X_enc, X_dec_future, y_full, 
+                 store_id=None, menu_id=None, store_menu_id=None):
         self.X_enc = X_enc.astype(np.float32)
         self.X_dec_future = X_dec_future.astype(np.float32)
         self.y_full = y_full.astype(np.float32)
+        self.store_id = store_id
+        self.menu_id = menu_id
+        self.store_menu_id = store_menu_id
 
     def __len__(self):
         return len(self.X_enc)
 
     def __getitem__(self, idx):
         return {
-            "X_enc": torch.tensor(self.X_enc[idx]),
-            "X_dec_future": torch.tensor(self.X_dec_future[idx]),
-            "y_full": torch.tensor(self.y_full[idx])
+            "X_enc": torch.tensor(self.X_enc[idx], dtype=torch.float32),
+            "X_dec_future": torch.tensor(self.X_dec_future[idx], dtype=torch.float32),
+            "y_full": torch.tensor(self.y_full[idx], dtype=torch.float32),
+            "store_id": torch.tensor(self.store_id[idx], dtype=torch.long),
+            "menu_id": torch.tensor(self.menu_id[idx], dtype=torch.long),
+            "store_menu_id": torch.tensor(self.store_menu_id[idx], dtype=torch.long)
         }

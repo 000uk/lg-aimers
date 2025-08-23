@@ -8,7 +8,7 @@ from preprocessing import (
 )
 from stl import stl_decompose, extrapolate_trend, repeat_seasonal
 from dataset import WindowGenerator, TSFullDataset, time_based_split
-from models import SimpleTransformer
+from model import SimpleTransformer
 
 DATA_PATH = "data/train/train.csv"
 
@@ -20,9 +20,9 @@ df_train, stats = load_data(pd.read_csv(DATA_PATH))
 df_train = add_date_features(df_train)
 df_train = add_holiday_info(df_train)
 
-le_store, le_menu, le_holiday = fit_label_encoders(df_train)
-save_encoders(le_store, le_menu, le_holiday, 'le_store.pkl', 'le_menu.pkl', 'le_holiday.pkl')
-df_train = encode_labels(df_train, le_store, le_menu, le_holiday)
+le_store_menu, le_store, le_menu, le_holiday = fit_label_encoders(df_train)
+save_encoders(le_store_menu, le_menu, le_holiday, 'le_store.pkl', 'le_menu.pkl', 'le_holiday.pkl')
+df_train = encode_labels(df_train, le_store_menu, le_store, le_menu, le_holiday)
 
 df_train = df_train.drop(columns=['store', 'menu', 'day', 'month', 'dow', 'week','day_of_year', 'holiday']).fillna(0)
 df_train = stl_decompose(df_train)
@@ -37,6 +37,7 @@ dataset = WindowGenerator(
     input_len=28,
     pred_len=7,
     id_cols=("store_enc", "menu_enc"),
+    store_menu_col="store_menu_enc",
     target_col="residual"
 )
 
@@ -56,8 +57,23 @@ split = time_based_split(windows, meta, val_ratio=0.1)
 # -------------------------------
 # Dataset + DataLoader
 # -------------------------------
-train_dataset = TSFullDataset(split["train_X_enc"], split["train_X_dec_future"], split["train_y_full"])
-val_dataset   = TSFullDataset(split["val_X_enc"], split["val_X_dec_future"], split["val_y_full"])
+train_dataset = TSFullDataset(
+    split["train_X_enc"],
+    split["train_X_dec_future"],
+    split["train_y_full"],
+    store_id=split["train_store_id"],
+    menu_id=split["train_menu_id"],
+    store_menu_id=split["train_store_menu_id"]
+)
+
+val_dataset = TSFullDataset(
+    split["val_X_enc"],
+    split["val_X_dec_future"],
+    split["val_y_full"],
+    store_id=split["val_store_id"],
+    menu_id=split["val_menu_id"],
+    store_menu_id=split["val_store_menu_id"]
+)
 
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False)
@@ -66,10 +82,21 @@ val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False)
 # 모델 생성
 # -------------------------------
 device = "cuda" if torch.cuda.is_available() else "cpu"
+
+num_stores = int(df_train["store_enc"].max()) + 1
+num_menus = int(df_train["menu_enc"].max()) + 1
+num_store_menus = int(df_train["store_menu_enc"].max()) + 1
+emb_dim = 16
+
 X_enc_features = split["train_X_enc"].shape[-1]
 X_dec_features = split["train_X_dec_future"].shape[-1]
 
-model = SimpleTransformer(X_enc_features, X_dec_features, d_model=64, nhead=4, num_layers=2, dropout=0.1).to(device)
+model = SimpleTransformer(
+    X_enc_features, X_dec_features,
+    num_stores=num_stores, num_menus=num_menus, num_store_menus=num_store_menus,
+    emb_dim=emb_dim,
+    d_model=64, nhead=4, num_layers=2, dropout=0.1
+).to(device)
 
 # -------------------------------
 # 옵티마이저 + 스케줄러
@@ -99,9 +126,12 @@ for epoch in range(1, num_epochs+1):
         X_enc = batch["X_enc"].to(device)
         X_dec = batch["X_dec_future"].to(device)
         y_full = batch["y_full"].to(device)
+        store_id = batch["store_id"].to(device)
+        menu_id = batch["menu_id"].to(device)
+        store_menu_id = batch["store_menu_id"].to(device)
 
         optimizer.zero_grad()
-        output = model(X_enc, X_dec, y_prev=y_full)
+        output = model(X_enc, X_dec, store_id, menu_id, store_menu_id, y_prev=y_full)
         loss = criterion(output, y_full)
         loss.backward()
         optimizer.step()
@@ -113,12 +143,16 @@ for epoch in range(1, num_epochs+1):
     model.eval()
     val_loss = 0
     with torch.no_grad():
-        for batch in val_loader:
-            X_enc = batch["X_enc"].to(device)
-            X_dec = batch["X_dec_future"].to(device)
-            y_full = batch["y_full"].to(device)
-            output = model(X_enc, X_dec, y_prev=y_full)
-            val_loss += criterion(output, y_full).item()
+      for batch in val_loader:
+          X_enc = batch["X_enc"].to(device)
+          X_dec = batch["X_dec_future"].to(device)
+          y_full = batch["y_full"].to(device)
+          store_id = batch["store_id"].to(device)
+          menu_id = batch["menu_id"].to(device)
+          store_menu_id = batch["store_menu_id"].to(device)
+
+          output = model(X_enc, X_dec, store_id, menu_id, store_menu_id, y_prev=y_full)
+          val_loss += criterion(output, y_full).item()
     val_loss /= len(val_loader)
 
     # Scheduler step
