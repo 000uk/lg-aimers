@@ -80,7 +80,13 @@ class WindowGenerator(Dataset):
                     start_idx = max(0, enc_start + i - self.lag)
                     end_idx = enc_start + i
                     lag_window = sales_norm[start_idx:end_idx]
-                    lag_feats[i, -len(lag_window):] = lag_window  # 부족한 경우 앞쪽 0 패딩
+                    if len(lag_window) > 0:
+                        lag_feats[i, -len(lag_window):] = lag_window
+                    else:
+                        # 빈 배열일 경우에 대한 처리 (선택사항)
+                        # 예: 0으로 채우기 등
+                        lag_feats[i, :] = 0.0 
+                    #lag_feats[i, -len(lag_window):] = lag_window  # 부족한 경우 앞쪽 0 패딩
 
                 # X_enc에 lag concat
                 X_enc_window = np.concatenate([X_enc_window, lag_feats], axis=-1)
