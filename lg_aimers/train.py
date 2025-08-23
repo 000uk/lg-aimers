@@ -74,8 +74,10 @@ model = SimpleTransformer(X_enc_features, X_dec_features, d_model=64, nhead=4, n
 # -------------------------------
 # 옵티마이저 + 스케줄러
 # -------------------------------
+# Weight Decay → Adam 옵티마이저에서 L2 정규화 적용
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)  # L2 정규화
 criterion = nn.MSELoss()
+# ReduceLROnPlateau → Val Loss 감소 없으면 학습률 반으로 줄임
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
 
 # -------------------------------

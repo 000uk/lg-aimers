@@ -129,7 +129,13 @@ class WindowGenerator(Dataset):
             "seasonal_future": seasonal_future,
             "y_full": y_full
         }
-    
+
+"""
+TSFullDataset
+과거 입력(X_enc)와 미래 입력(X_dec_future), 그리고 목표값(y_full)을 포함한 데이터셋을 PyTorch Dataset 형태로 준비.
+y_full = residual + trend + seasonal → 모델이 시계열 전체를 직접 예측하도록 함.
+Teacher Forcing을 위해 학습 시 디코더 입력에 이전 시점의 실제 y_full 값을 넣을 수 있게 설계.
+"""
 class TSFullDataset(Dataset):
     def __init__(self, X_enc, X_dec_future, y_full):
         self.X_enc = X_enc.astype(np.float32)

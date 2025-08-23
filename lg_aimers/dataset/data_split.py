@@ -27,4 +27,8 @@ def time_based_split(
     split["train_meta"] = meta.iloc[0:n - n_val].reset_index(drop=True)
     split["val_meta"] = meta.iloc[n - n_val:].reset_index(drop=True)
     split["info"] = windows["info"]
+
+    split["train_y_full"] = split["train_y_resid"] + split["train_trend_future"] + split["train_seasonal_future"]
+    split["val_y_full"]   = split["val_y_resid"] + split["val_trend_future"] + split["val_seasonal_future"]
+
     return split
