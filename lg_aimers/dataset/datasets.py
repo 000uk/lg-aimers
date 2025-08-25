@@ -25,7 +25,7 @@ class WindowGenerator(Dataset):
         self.pred_len = pred_len
         self.lag = lag
         self.id_cols = id_cols
-        self.target_col = target_col
+        self.target_col = target_col  # target_col=None 가능
 
         # 디폴트 feature 세팅
         if used_feature_cols is None:
@@ -64,10 +64,11 @@ class WindowGenerator(Dataset):
 
             used_feats = g[self.used_feature_cols].values
             known_feats = g[self.known_future_cols].values
-            resid = g[self.target_col].values
+            if self.target_col is not None:
+                resid = g[self.target_col].values
             trend = g["trend"].values
             seas = g["seasonal"].values
-            sales_norm = g["sales_norm"].values  # <- lag feature용
+            sales_norm = g["sales_norm"].values
             dates = g["date"].values
 
             for t in range(self.input_len, n - self.pred_len + 1):
@@ -91,13 +92,15 @@ class WindowGenerator(Dataset):
                         # 예: 0으로 채우기 등
                         lag_feats[i, :] = 0.0
                     # lag_feats[i, -len(lag_window):] = lag_window  # 부족한 경우 앞쪽 0 패딩
-
+                
                 # X_enc에 lag concat
                 X_enc_window = np.concatenate([X_enc_window, lag_feats], axis=-1)
 
                 X_enc_list.append(X_enc_window)
                 X_dec_list.append(known_feats[dec_start:dec_end, :].astype(np.float32))
-                y_list.append(resid[dec_start:dec_end].astype(np.float32))
+
+                if self.target_col is not None:
+                    y_list.append(resid[dec_start:dec_end].astype(np.float32))
 
                 # trend, seasonal 외삽
                 # T_future = extrapolate_trend(trend[enc_start:enc_end], self.pred_len).astype(np.float32)
@@ -105,7 +108,6 @@ class WindowGenerator(Dataset):
                 # 걍 쓰지 말아보자
                 T_future = np.zeros(self.pred_len, dtype=np.float32)
                 S_future = np.zeros(self.pred_len, dtype=np.float32)
-
 
                 T_list.append(T_future)
                 S_list.append(S_future)
@@ -119,7 +121,10 @@ class WindowGenerator(Dataset):
 
         X_enc = np.stack(X_enc_list)
         X_dec_future = np.stack(X_dec_list)
-        y_resid = np.stack(y_list)
+        if self.target_col is not None:
+            y_resid = np.stack(y_list)
+        else:
+            y_resid = None
         trend_future = np.stack(T_list)
         seasonal_future = np.stack(S_list)
         meta = pd.DataFrame(meta_rows)
@@ -130,25 +135,28 @@ class WindowGenerator(Dataset):
         return len(self.X_enc)
 
     def __getitem__(self, idx):
-        y_resid = torch.tensor(self.y_resid[idx])
+        x_enc = torch.tensor(self.X_enc[idx])
+        x_dec = torch.tensor(self.X_dec_future[idx])
         trend_future = torch.tensor(self.trend_future[idx])
         seasonal_future = torch.tensor(self.seasonal_future[idx])
-        y_full = y_resid + trend_future + seasonal_future
 
-        # ID 임베딩용
-        store_menu_id = torch.tensor(self.meta["store_menu_enc"].iloc[idx], dtype=torch.long)
-        menu_id = torch.tensor(self.meta["menu_enc"].iloc[idx], dtype=torch.long)
-
-        return {
-            "X_enc": torch.tensor(self.X_enc[idx]),
-            "X_dec_future": torch.tensor(self.X_dec_future[idx]),
-            "y_resid": y_resid,
+        sample = {
+            "X_enc": x_enc,
+            "X_dec_future": x_dec,
             "trend_future": trend_future,
             "seasonal_future": seasonal_future,
-            "y_full": y_full,
-            "store_menu_id": store_menu_id,
-            "menu_id": menu_id,
+            "store_menu_id": torch.tensor(self.meta["store_menu_enc"].iloc[idx], dtype=torch.long),
+            "menu_id": torch.tensor(self.meta["menu_enc"].iloc[idx], dtype=torch.long),
         }
+
+        # target_col이 있는 경우만 추가
+        if self.target_col is not None:
+            y_resid = torch.tensor(self.y_resid[idx])
+            y_full = y_resid + trend_future + seasonal_future
+            sample["y_resid"] = y_resid
+            sample["y_full"] = y_full
+
+        return sample
     
 """
 - 과거 입력(X_enc)와 미래 입력(X_dec_future), 그리고 목표값(y_full)을 포함한 데이터셋을 PyTorch Dataset 형태로 준비.
