@@ -184,3 +184,22 @@ class TSFullDataset(Dataset):
             "store_menu_id": torch.tensor(self.store_menu_id[idx], dtype=torch.long),
             "menu_id": torch.tensor(self.menu_id[idx], dtype=torch.long),
         }
+
+# 테스트용 데이터셋임. 추론할 떄 사용
+class TSTestDataset(Dataset):
+    def __init__(self, X_enc, X_dec_future, store_menu_id, menu_id):
+        self.X_enc = X_enc
+        self.X_dec_future = X_dec_future
+        self.store_menu_id = store_menu_id
+        self.menu_id = menu_id
+
+    def __len__(self):
+        return len(self.X_enc)
+
+    def __getitem__(self, idx):
+        return {
+            "X_enc": torch.tensor(self.X_enc[idx], dtype=torch.float),
+            "X_dec_future": torch.tensor(self.X_dec_future[idx], dtype=torch.float),
+            "store_menu_id": torch.tensor(self.store_menu_id[idx], dtype=torch.long),
+            "menu_id": torch.tensor(self.menu_id[idx], dtype=torch.long),
+        }

@@ -29,7 +29,6 @@ def train_one_epoch(model, loader, optimizer, criterion, device):
     return total_loss / len(loader)
 
 def validate(model, loader, criterion, device):
-    
     model.eval()
     val_loss_teacher = 0
     val_loss_rollout = 0
@@ -65,6 +64,7 @@ def validate(model, loader, criterion, device):
             val_loss_rollout += criterion(y_hat, y_full).item()
 
     return val_loss_teacher / len(loader), val_loss_rollout / len(loader)
+
 DATA_PATH = "data/train/train.csv"
 
 # -----------------------------
@@ -129,25 +129,97 @@ model = SimpleTransformer(
     d_model=64, nhead=4, num_layers=2, dropout=0.5
 ).to(device)
 
+train_losses = []
+val_losses_teacher = []
+val_losses_rollout = []
 
+for i, split in enumerate(splits):
+    print(f"=== Window {i+1} ===")
+    # -------------------------------
+    # Dataset + DataLoader
+    # -------------------------------
+    train_dataset = TSFullDataset(
+        split["train_X_enc"],
+        split["train_X_dec_future"],
+        split["train_y_full"],
+        store_menu_id=split["train_store_menu_id"],
+        menu_id=split["train_menu_id"],
+    )
 
+    val_dataset = TSFullDataset(
+        split["val_X_enc"],
+        split["val_X_dec_future"],
+        split["val_y_full"],
+        store_menu_id=split["val_store_menu_id"],
+        menu_id=split["val_menu_id"],
+    )
 
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False)
 
-# -----------------------------
-# ?) 최종 예측
-# -----------------------------
-future_residual = model.predict(future_input)
-future_trend = extrapolate_trend(df_train['trend'], horizon=7) # - Trend: 선형/다항 회귀로 앞으로 연장
-future_seasonal = repeat_seasonal(df_train['seasonal'], horizon=7) # - Seasonal: 주기 반복
-future_pred = future_trend + future_seasonal + future_residual
+    # -------------------------------
+    # 옵티마이저 + 스케줄러
+    # -------------------------------
+    # Weight Decay → Adam 옵티마이저에서 L2 정규화 적용
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)  # L2 정규화
+    # optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-4)
+    criterion = nn.MSELoss()
+    # ReduceLROnPlateau → Val Loss 감소 없으면 학습률 반으로 줄임
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
 
-# 원래 스키마로 되돌리기
-output = pd.DataFrame({
-    'date': future_dates,
-    'store_menu': store_menu_id,  # 원래 인코딩/디코딩 필요
-    'sales_qty_pred': future_pred
-})
+    # -------------------------------
+    # EarlyStopping
+    # -------------------------------
+    best_val_loss = float('inf')
+    patience = 5
+    trigger_times = 0
 
-# 언젠가 정규화한거 복구해아하니까
-# df = df.merge(stats, on='store_menu', how='left')
-# df['sales_qty'] = df['sales_norm'] * df['std'] + df['mean']
+    # -------------------------------
+    # 학습 루프
+    # -------------------------------
+    num_epochs = 50
+
+    for epoch in range(1, num_epochs+1):
+        train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device)
+        val_loss_teacher, val_loss_rollout = validate2(model, val_loader, criterion, device)
+
+        train_losses.append(train_loss)
+        val_losses_teacher.append(val_loss_teacher)
+        val_losses_rollout.append(val_loss_rollout)
+
+        scheduler.step(val_loss_rollout)  # 보통 rollout 기준으로 스케줄링
+
+        print(f"Epoch {epoch} "
+              f"Train Loss: {train_loss:.4f} "
+              f"Val(TF): {val_loss_teacher:.4f} "
+              f"Val(Roll): {val_loss_rollout:.4f}")
+
+        # EarlyStopping 체크
+        if val_loss_rollout < best_val_loss:
+            best_val_loss = val_loss_rollout
+            trigger_times = 0
+            torch.save(model.state_dict(), "best_model.pt")
+        else:
+            trigger_times += 1
+            if trigger_times >= patience:
+                print("EarlyStopping: 더 이상 개선 없음, 학습 종료")
+                break
+
+# # -----------------------------
+# # ?) 최종 예측
+# # -----------------------------
+# future_residual = model.predict(future_input)
+# future_trend = extrapolate_trend(df_train['trend'], horizon=7) # - Trend: 선형/다항 회귀로 앞으로 연장
+# future_seasonal = repeat_seasonal(df_train['seasonal'], horizon=7) # - Seasonal: 주기 반복
+# future_pred = future_trend + future_seasonal + future_residual
+
+# # 원래 스키마로 되돌리기
+# output = pd.DataFrame({
+#     'date': future_dates,
+#     'store_menu': store_menu_id,  # 원래 인코딩/디코딩 필요
+#     'sales_qty_pred': future_pred
+# })
+
+# # 언젠가 정규화한거 복구해아하니까
+# # df = df.merge(stats, on='store_menu', how='left')
+# # df['sales_qty'] = df['sales_norm'] * df['std'] + df['mean']
