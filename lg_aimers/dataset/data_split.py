@@ -48,7 +48,7 @@ def rolling_split(windows, meta, train_len, val_len, step=7):
     """
     order = np.argsort(meta['pred_start_date'].values)
     for k in ["X_enc", "X_dec_future", "y_resid", "trend_future", "seasonal_future",
-              "store_id", "menu_id", "store_menu_id"]:  # ← ID 포함
+              "store_menu_id", "menu_id"]: # ← ID 포함
         windows[k] = windows[k][order]
     meta = meta.iloc[order].reset_index(drop=True)
 
@@ -62,7 +62,7 @@ def rolling_split(windows, meta, train_len, val_len, step=7):
 
         split = {}
         for k in ["X_enc", "X_dec_future", "y_resid", "trend_future", "seasonal_future",
-                  "store_id", "menu_id", "store_menu_id"]:  # ← 동일하게 반영
+                  "store_menu_id", "menu_id"]: # ← 동일하게 반영
             split[f"train_{k}"] = windows[k][train_slice]
             split[f"val_{k}"]   = windows[k][val_slice]
 
